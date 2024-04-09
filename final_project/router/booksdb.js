@@ -11,4 +11,25 @@ let books = {
       10: {"author": "Samuel Beckett","title": "Molloy, Malone Dies, The Unnamable, the trilogy", "reviews": {}, "isbn": "9"}
 }
 
+let users = []; // Define users array
+
+// Function to check if a username already exists
+const isValid = (username) => {
+    // Check if the username exists in the list of users
+    return users.some(user => user.username === username);
+};
+
+
+// Function to delete a book by ISBN
+const deleteBook = (isbn) => {
+    if (books[isbn]) {
+        delete books[isbn];
+        return true; // Book deleted successfully
+    } else {
+        return false; // Book not found
+    }
+};
+
+module.exports.isValid = isValid;
+module.exports.users = users;
 module.exports=books;
