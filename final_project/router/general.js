@@ -1,23 +1,36 @@
 const express = require('express');
+const authUsers = require("./auth_users.js"); // Import the entire module
 let books = require("./booksdb.js");
-const public_users = express.Router();
-let isValid = require("./auth_users.js").isValid;
-let users = require("./auth_users.js").users;
+const publicUsers = express.Router();
 
 // POST request: Create a new book
-public_users.post("/register", (req, res) => {
-    const { author, title, review, isbn } = req.query;
+publicUsers.post("/books", (req, res) => {
+    const { author, title, review, isbn } = req.body;
+
+    // Check if required book details are provided
+    if (!author || !title || !isbn) {
+        return res.status(400).json({ message: "Author, title, and ISBN are required" });
+    }
+
+    // Check if the book already exists
+    if (books[isbn]) {
+        return res.status(400).json({ message: "Book with the same ISBN already exists" });
+    }
+
+    // Add the new book to the books database
     books[isbn] = { author, title, review, isbn };
-    res.send(`The book ${title} has been added!`);
+
+    // Respond with a success message
+    return res.status(201).json({ message: `The book ${title} has been added!` });
 });
 
 // Get the book list available in the shop
-public_users.get('/', function (req, res) {
+publicUsers.get('/', function (req, res) {
     res.send(books);
 });
 
 // Get book details based on title
-public_users.get('/title/:title', function (req, res) {
+publicUsers.get('/title/:title', function (req, res) {
     const title = req.params.title;
     const booksByTitle = Object.values(books).filter(book => book.title === title);
     if (booksByTitle.length > 0) {
@@ -28,7 +41,7 @@ public_users.get('/title/:title', function (req, res) {
 });
 
 // Get book details based on ISBN
-public_users.get('/isbn/:isbn', function (req, res) {
+publicUsers.get('/isbn/:isbn', function (req, res) {
     const isbn = req.params.isbn;
     const book = books[isbn];
     if (book) {
@@ -39,7 +52,7 @@ public_users.get('/isbn/:isbn', function (req, res) {
 });
 
 // Get book details based on author
-public_users.get('/author/:author', function (req, res) {
+publicUsers.get('/author/:author', function (req, res) {
     const author = req.params.author;
     const booksByAuthor = Object.values(books).filter(book => book.author === author);
     if (booksByAuthor.length > 0) {
@@ -49,15 +62,31 @@ public_users.get('/author/:author', function (req, res) {
     }
 });
 
-// Get book details based on review
-public_users.get('/review/:review', function (req, res) {
-    const review = req.params.review;
-    const booksWithReview = Object.values(books).filter(book => book.review === review);
-    if (booksWithReview.length > 0) {
-        res.send(JSON.stringify({ booksWithReview }, null, 4));
+// Get reviews for a book based on ISBN
+publicUsers.get('/reviews/:isbn', function (req, res) {
+    const isbn = req.params.isbn;
+    const book = books[isbn];
+    if (book) {
+        if (Object.keys(book.reviews).length > 0) {
+            res.json({ reviews: book.reviews });
+        } else {
+            res.status(404).json({ message: "No reviews found for the provided book" });
+        }
     } else {
-        res.status(404).json({ message: "No books found with the provided review" });
+        res.status(404).json({ message: "Book not found" });
     }
 });
 
-module.exports.general = public_users;
+// Delete a book by ISBN
+publicUsers.delete('/books/:isbn', (req, res) => {
+    const isbn = req.params.isbn;
+    const bookDeleted = deleteBook(isbn);
+    if (bookDeleted) {
+        res.status(200).json({ message: "Book deleted successfully" });
+    } else {
+        res.status(404).json({ message: "Book not found" });
+    }
+});
+
+
+module.exports.general = publicUsers;
