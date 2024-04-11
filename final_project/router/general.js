@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios'); // Import Axios for making HTTP requests
 const authUsers = require("./auth_users.js"); // Import the entire module
 let books = require("./booksdb.js");
 const publicUsers = express.Router();
@@ -24,30 +25,46 @@ publicUsers.post("/books", (req, res) => {
     return res.status(201).json({ message: `The book ${title} has been added!` });
 });
 
-// Get the book list available in the shop
-publicUsers.get('/', function (req, res) {
-    res.send(books);
-});
-
-// Get book details based on title
-publicUsers.get('/title/:title', function (req, res) {
-    const title = req.params.title;
-    const booksByTitle = Object.values(books).filter(book => book.title === title);
-    if (booksByTitle.length > 0) {
-        res.json({ booksByTitle });
-    } else {
-        res.status(404).json({ message: "No books found for the provided title" });
+// Get the book list available in the shop using async-await with Axios
+publicUsers.get('/', async function (req, res) {
+    try {
+        const response = await axios.get('https://kaig2002-5000.theianext-0-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai/');
+        const books = response.data;
+        res.json({ books });
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
     }
 });
 
-// Get book details based on ISBN
-publicUsers.get('/isbn/:isbn', function (req, res) {
-    const isbn = req.params.isbn;
-    const book = books[isbn];
-    if (book) {
-        res.send(JSON.stringify({ book }, null, 4));
-    } else {
-        res.status(404).json({ message: "Book not found" });
+// Get book details based on title using async-await with Axios
+publicUsers.get('/title/:title', async function (req, res) {
+    try {
+        const title = req.params.title;
+        const response = await axios.get(`https://kaig2002-5000.theianext-0-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai/title/${title}`); // Replace with your server URL
+        const booksByTitle = response.data.booksByTitle;
+        if (booksByTitle && booksByTitle.length > 0) {
+            res.json({ booksByTitle });
+        } else {
+            res.status(404).json({ message: "No books found for the provided title" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// Get book details based on ISBN using async-await with Axios
+publicUsers.get('/isbn/:isbn', async function (req, res) {
+    try {
+        const isbn = req.params.isbn;
+        const response = await axios.get(`https://kaig2002-5000.theianext-0-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai/isbn/${isbn}`); // Replace with your server URL
+        const book = response.data.book;
+        if (book) {
+            res.send(JSON.stringify({ book }, null, 4));
+        } else {
+            res.status(404).json({ message: "Book not found" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
     }
 });
 
